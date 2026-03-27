@@ -1,7 +1,11 @@
 export class TimeoutError extends Error {
+  readonly timeoutMs: number;
+  readonly retryable: boolean = true;
+
   constructor(timeoutMs: number) {
     super(`Timed out after ${timeoutMs}ms`);
     this.name = "TimeoutError";
+    this.timeoutMs = timeoutMs;
   }
 }
 

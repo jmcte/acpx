@@ -50,6 +50,10 @@ export class AgentSpawnError extends AcpxOperationalError {
   constructor(agentCommand: string, cause?: unknown) {
     super(`Failed to spawn agent command: ${agentCommand}`, {
       cause: cause instanceof Error ? cause : undefined,
+      outputCode: "RUNTIME",
+      detailCode: "AGENT_SPAWN_FAILED",
+      origin: "runtime",
+      retryable: true,
     });
     this.agentCommand = agentCommand;
   }

@@ -43,6 +43,7 @@ import { connectAndLoadSession } from "./session-runtime/connect-load.js";
 import {
   applyConversation,
   applyLifecycleSnapshotToRecord,
+  coerceProtocolVersion,
 } from "./session-runtime/lifecycle.js";
 import {
   runSessionSetConfigOptionDirect,
@@ -524,7 +525,9 @@ async function runSessionPrompt(
         record.lastUsedAt = now;
         record.closed = false;
         record.closedAt = undefined;
-        record.protocolVersion = client.initializeResult?.protocolVersion;
+        record.protocolVersion = coerceProtocolVersion(
+          client.initializeResult?.protocolVersion,
+        );
         record.agentCapabilities = client.initializeResult?.agentCapabilities;
         applyConversation(record, conversation);
         record.acpx = acpxState;
@@ -663,7 +666,9 @@ export async function createSession(
           closedAt: undefined,
           pid: lifecycle.pid,
           agentStartedAt: lifecycle.startedAt,
-          protocolVersion: client.initializeResult?.protocolVersion,
+          protocolVersion: coerceProtocolVersion(
+            client.initializeResult?.protocolVersion,
+          ),
           agentCapabilities: client.initializeResult?.agentCapabilities,
           ...createSessionConversation(now),
           acpx: {},

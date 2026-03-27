@@ -16,7 +16,7 @@ import type {
 } from "../types.js";
 import type { QueueOwnerActiveSessionController } from "../queue-owner-turn-controller.js";
 import { connectAndLoadSession } from "./connect-load.js";
-import { applyLifecycleSnapshotToRecord } from "./lifecycle.js";
+import { applyLifecycleSnapshotToRecord, coerceProtocolVersion } from "./lifecycle.js";
 
 export type ActiveSessionController = QueueOwnerActiveSessionController;
 
@@ -98,7 +98,9 @@ async function withConnectedSession<T>(
         record.lastUsedAt = now;
         record.closed = false;
         record.closedAt = undefined;
-        record.protocolVersion = client.initializeResult?.protocolVersion;
+        record.protocolVersion = coerceProtocolVersion(
+          client.initializeResult?.protocolVersion,
+        );
         record.agentCapabilities = client.initializeResult?.agentCapabilities;
         applyLifecycleSnapshotToRecord(record, client.getAgentLifecycleSnapshot());
         await writeSessionRecord(record);
