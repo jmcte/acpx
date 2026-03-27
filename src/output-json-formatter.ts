@@ -38,6 +38,7 @@ class JsonOutputFormatter implements OutputFormatter {
     message: string;
     retryable?: boolean;
     acp?: OutputErrorAcpPayload;
+    hint?: string;
     timestamp?: string;
   }): void {
     this.stdout.write(
@@ -48,6 +49,7 @@ class JsonOutputFormatter implements OutputFormatter {
           origin: params.origin,
           message: params.message,
           retryable: params.retryable,
+          hint: params.hint,
           timestamp: params.timestamp,
           sessionId: this.sessionId,
           acp: params.acp,

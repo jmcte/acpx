@@ -32,6 +32,7 @@ export type NormalizedOutputError = {
   origin?: OutputErrorOrigin;
   retryable?: boolean;
   acp?: OutputErrorAcpPayload;
+  hint?: string;
 };
 
 export type NormalizeOutputErrorOptions = {
@@ -299,6 +300,7 @@ export function normalizeOutputError(
     (error instanceof AuthPolicyError || isAcpAuthRequiredPayload(acp)
       ? "AUTH_REQUIRED"
       : undefined);
+  const hint = remediationHint(code, detailCode, acp);
   return {
     code,
     message: formatErrorMessage(error),
@@ -306,7 +308,49 @@ export function normalizeOutputError(
     origin: meta.origin ?? options.origin,
     retryable: meta.retryable ?? options.retryable,
     acp,
+    ...(hint ? { hint } : {}),
   };
+}
+
+export function remediationHint(
+  code: OutputErrorCode,
+  detailCode?: string,
+  acp?: OutputErrorAcpPayload,
+): string | undefined {
+  if (detailCode === "AUTH_REQUIRED") {
+    return "Set credentials via environment variable or --auth-credentials flag. See: acpx config init";
+  }
+
+  if (detailCode === "AGENT_SPAWN_FAILED") {
+    return "Verify the agent command is installed and accessible on PATH. Try running it directly to check.";
+  }
+
+  switch (code) {
+    case "TIMEOUT":
+      return "Increase --timeout value or check network connectivity to the agent process.";
+    case "NO_SESSION":
+      return "Create a new session with: acpx <agent> sessions new";
+    case "PERMISSION_DENIED":
+      return "Use --approve-all or --approve-reads to adjust permission mode.";
+    case "PERMISSION_PROMPT_UNAVAILABLE":
+      return "Running in non-interactive mode. Use --approve-all to auto-approve or --non-interactive-permissions fail to surface errors.";
+    default:
+      break;
+  }
+
+  if (acp) {
+    if (acp.code === -32603) {
+      return "Internal agent error. Check agent logs for details or restart the session.";
+    }
+    if (acp.code >= 429 && acp.code < 500) {
+      return "Rate limited by provider. Wait and retry, or switch to a different model.";
+    }
+    if (acp.code >= 500) {
+      return "Server error from provider. Check provider status page or try again later.";
+    }
+  }
+
+  return undefined;
 }
 
 export function exitCodeForOutputErrorCode(code: OutputErrorCode): ExitCode {

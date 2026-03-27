@@ -723,21 +723,26 @@ function printSessionDetailsByFormat(
   );
 }
 
-function printSessionHistoryByFormat(
+async function printSessionHistoryByFormat(
   record: SessionRecord,
   limit: number,
   format: OutputFormat,
-): void {
+): Promise<void> {
   const history = conversationHistoryEntries(record);
   const visible = history.slice(Math.max(0, history.length - limit));
 
   if (format === "json") {
+    const ownerActive =
+      visible.length === 0
+        ? (await probeQueueOwnerHealth(record.acpxRecordId)).healthy
+        : undefined;
     process.stdout.write(
       `${JSON.stringify({
         id: record.acpxRecordId,
         sessionId: record.acpSessionId,
         limit,
         count: visible.length,
+        ...(ownerActive ? { active: true } : {}),
         entries: visible,
       })}\n`,
     );
@@ -755,7 +760,14 @@ function printSessionHistoryByFormat(
     `session: ${record.acpxRecordId} (${visible.length}/${history.length} shown)\n`,
   );
   if (visible.length === 0) {
-    process.stdout.write("No history\n");
+    const health = await probeQueueOwnerHealth(record.acpxRecordId);
+    if (health.healthy) {
+      process.stdout.write(
+        "No history yet — session is active; messages will appear after the current prompt completes.\n",
+      );
+    } else {
+      process.stdout.write("No history\n");
+    }
     return;
   }
 
@@ -814,7 +826,7 @@ async function handleSessionsHistory(
     );
   }
 
-  printSessionHistoryByFormat(record, flags.limit, globalFlags.format);
+  await printSessionHistoryByFormat(record, flags.limit, globalFlags.format);
 }
 
 function formatUptime(startedAt: string | undefined): string | undefined {
@@ -1390,6 +1402,9 @@ function emitRequestedError(
     emitJsonErrorEvent(normalized);
   } else if (!outputPolicy.suppressNonJsonStderr) {
     process.stderr.write(`${normalized.message}\n`);
+    if (normalized.hint) {
+      process.stderr.write(`hint: ${normalized.hint}\n`);
+    }
   }
 }
 
