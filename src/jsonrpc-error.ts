@@ -29,6 +29,7 @@ export type BuildJsonRpcErrorParams = {
   timestamp?: string;
   sessionId?: string;
   acp?: OutputErrorAcpPayload;
+  hint?: string;
 };
 
 function hasValidAcpError(
@@ -48,6 +49,7 @@ function buildFallbackData(params: BuildJsonRpcErrorParams): Record<string, unkn
     detailCode: params.detailCode,
     origin: params.origin,
     retryable: params.retryable,
+    hint: params.hint,
     timestamp: params.timestamp,
     sessionId: params.sessionId,
   };

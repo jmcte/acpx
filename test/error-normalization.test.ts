@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   exitCodeForOutputErrorCode,
   normalizeOutputError,
+  remediationHint,
   isAcpQueryClosedBeforeResponseError,
   isAcpResourceNotFoundError,
 } from "../src/error-normalization.js";
@@ -125,4 +126,33 @@ test("exitCodeForOutputErrorCode maps machine codes to stable exits", () => {
   assert.equal(exitCodeForOutputErrorCode("PERMISSION_DENIED"), 5);
   assert.equal(exitCodeForOutputErrorCode("PERMISSION_PROMPT_UNAVAILABLE"), 5);
   assert.equal(exitCodeForOutputErrorCode("RUNTIME"), 1);
+});
+
+test("remediationHint returns actionable text for known error codes", () => {
+  assert.match(remediationHint("TIMEOUT") ?? "", /timeout/i);
+  assert.match(remediationHint("NO_SESSION") ?? "", /sessions new/);
+  assert.match(remediationHint("PERMISSION_DENIED") ?? "", /approve/i);
+  assert.match(
+    remediationHint("PERMISSION_PROMPT_UNAVAILABLE") ?? "",
+    /non-interactive/i,
+  );
+});
+
+test("remediationHint returns auth hint for AUTH_REQUIRED detail", () => {
+  assert.match(remediationHint("RUNTIME", "AUTH_REQUIRED") ?? "", /credentials/i);
+});
+
+test("remediationHint returns spawn hint for AGENT_SPAWN_FAILED detail", () => {
+  assert.match(remediationHint("RUNTIME", "AGENT_SPAWN_FAILED") ?? "", /PATH/);
+});
+
+test("remediationHint returns undefined for unknown codes", () => {
+  assert.equal(remediationHint("USAGE"), undefined);
+});
+
+test("normalizeOutputError includes hint in output", () => {
+  const error = new AuthPolicyError("missing credentials");
+  const normalized = normalizeOutputError(error);
+  assert.equal(typeof normalized.hint, "string");
+  assert.match(normalized.hint ?? "", /credentials/i);
 });

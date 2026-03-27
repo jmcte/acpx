@@ -134,6 +134,7 @@ export interface OutputFormatter {
     message: string;
     retryable?: boolean;
     acp?: OutputErrorAcpPayload;
+    hint?: string;
     timestamp?: string;
   }): void;
   flush(): void;
