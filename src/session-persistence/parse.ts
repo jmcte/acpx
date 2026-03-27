@@ -1,5 +1,6 @@
 import { normalizeRuntimeSessionId } from "../runtime-session-id.js";
 import { defaultSessionEventLog } from "../session-event-log.js";
+import { coerceProtocolVersion } from "../session-runtime/lifecycle.js";
 import type {
   SessionAcpxState,
   SessionEventLog,
@@ -487,8 +488,7 @@ export function parseSessionRecord(raw: unknown): SessionRecord | null {
         : (lastAgentExitSignal as NodeJS.Signals),
     lastAgentExitAt,
     lastAgentDisconnectReason,
-    protocolVersion:
-      typeof record.protocol_version === "number" ? record.protocol_version : undefined,
+    protocolVersion: coerceProtocolVersion(record.protocol_version),
     agentCapabilities: asRecord(
       record.agent_capabilities,
     ) as SessionRecord["agentCapabilities"],
