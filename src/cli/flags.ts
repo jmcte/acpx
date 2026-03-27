@@ -34,6 +34,9 @@ export type GlobalFlags = PermissionFlags & {
   ttl: number;
   verbose?: boolean;
   format: OutputFormat;
+  model?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
 };
 
 export type PromptFlags = {
@@ -190,7 +193,29 @@ export function addGlobalFlags(command: Command): Command {
       "Queue owner idle TTL before shutdown (0 = keep alive forever) (default: 300)",
       parseTtlSeconds,
     )
-    .option("--verbose", "Enable verbose debug logs");
+    .option("--verbose", "Enable verbose debug logs")
+    .option("--model <id>", "Model to use for the agent session")
+    .option(
+      "--allowed-tools <tools>",
+      "Comma-separated list of allowed tools (empty string = no tools)",
+      parseAllowedTools,
+    )
+    .option("--max-turns <n>", "Maximum number of agent turns", parseMaxTurns);
+}
+
+export function parseAllowedTools(value: string): string[] {
+  if (value === "") {
+    return [];
+  }
+  return value.split(",").map((t) => t.trim());
+}
+
+export function parseMaxTurns(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new InvalidArgumentError("Max turns must be a positive integer");
+  }
+  return parsed;
 }
 
 export function addSessionOption(command: Command): Command {
@@ -278,6 +303,9 @@ export function resolveGlobalFlags(
     approveAll: opts.approveAll ? true : undefined,
     approveReads: opts.approveReads ? true : undefined,
     denyAll: opts.denyAll ? true : undefined,
+    model: opts.model,
+    allowedTools: opts.allowedTools,
+    maxTurns: opts.maxTurns,
   };
 }
 

@@ -70,11 +70,27 @@ import {
   OUTPUT_FORMATS,
   type OutputFormat,
   type OutputPolicy,
+  type SessionMeta,
   type SessionRecord,
   type SessionAgentContent,
   type SessionUserContent,
 } from "./types.js";
 import { runQueueOwnerFromEnv } from "./queue-owner-env.js";
+
+function buildSessionMeta(globalFlags: {
+  model?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+}): SessionMeta | undefined {
+  if (!globalFlags.model && !globalFlags.allowedTools && !globalFlags.maxTurns) {
+    return undefined;
+  }
+  return {
+    model: globalFlags.model,
+    allowedTools: globalFlags.allowedTools,
+    maxTurns: globalFlags.maxTurns,
+  };
+}
 
 class NoSessionError extends Error {
   constructor(message: string) {
@@ -229,6 +245,7 @@ async function handlePrompt(
     nonInteractivePermissions: globalFlags.nonInteractivePermissions,
     authCredentials: config.auth,
     authPolicy: globalFlags.authPolicy,
+    sessionMeta: buildSessionMeta(globalFlags),
     outputFormatter,
     errorEmissionPolicy: {
       queueErrorAlreadyEmitted: outputPolicy.queueErrorAlreadyEmitted,
@@ -279,6 +296,7 @@ async function handleExec(
     nonInteractivePermissions: globalFlags.nonInteractivePermissions,
     authCredentials: config.auth,
     authPolicy: globalFlags.authPolicy,
+    sessionMeta: buildSessionMeta(globalFlags),
     outputFormatter,
     suppressSdkConsoleErrors: outputPolicy.suppressSdkConsoleErrors,
     timeoutMs: globalFlags.timeout,
@@ -549,6 +567,7 @@ async function handleSessionsNew(
     nonInteractivePermissions: globalFlags.nonInteractivePermissions,
     authCredentials: config.auth,
     authPolicy: globalFlags.authPolicy,
+    sessionMeta: buildSessionMeta(globalFlags),
     timeoutMs: globalFlags.timeout,
     verbose: globalFlags.verbose,
   });
@@ -802,6 +821,68 @@ async function handleSessionsShow(
   printSessionDetailsByFormat(record, globalFlags.format);
 }
 
+async function handleSessionsRead(
+  explicitAgentName: string | undefined,
+  sessionName: string | undefined,
+  command: Command,
+  config: ResolvedAcpxConfig,
+): Promise<void> {
+  const globalFlags = resolveGlobalFlags(command, config);
+  const agent = resolveAgentInvocation(explicitAgentName, globalFlags, config);
+  const record = await findSession({
+    agentCommand: agent.agentCommand,
+    cwd: agent.cwd,
+    name: sessionName,
+    includeClosed: true,
+  });
+
+  if (!record) {
+    throw new Error(
+      sessionName
+        ? `No named session "${sessionName}" for cwd ${agent.cwd} and agent ${agent.agentName}`
+        : `No cwd session for ${agent.cwd} and agent ${agent.agentName}`,
+    );
+  }
+
+  if (globalFlags.format === "json") {
+    process.stdout.write(
+      `${JSON.stringify({
+        id: record.acpxRecordId,
+        sessionId: record.acpSessionId,
+        messages: record.messages,
+      })}\n`,
+    );
+    return;
+  }
+
+  for (const message of record.messages) {
+    if (message === "Resume") {
+      continue;
+    }
+
+    if ("User" in message) {
+      const text = message.User.content
+        .map((entry) => userContentToText(entry))
+        .join(" ")
+        .trim();
+      if (text) {
+        process.stdout.write(`> ${text}\n\n`);
+      }
+      continue;
+    }
+
+    if ("Agent" in message) {
+      const text = message.Agent.content
+        .map((entry) => agentContentToText(entry))
+        .join(" ")
+        .trim();
+      if (text) {
+        process.stdout.write(`${text}\n\n`);
+      }
+    }
+  }
+}
+
 async function handleSessionsHistory(
   explicitAgentName: string | undefined,
   sessionName: string | undefined,
@@ -1042,6 +1123,14 @@ function registerSessionsCommand(
     .argument("[name]", "Session name", parseSessionName)
     .action(async function (this: Command, name?: string) {
       await handleSessionsShow(explicitAgentName, name, this, config);
+    });
+
+  sessionsCommand
+    .command("read")
+    .description("Output full session conversation content")
+    .argument("[name]", "Session name", parseSessionName)
+    .action(async function (this: Command, name?: string) {
+      await handleSessionsRead(explicitAgentName, name, this, config);
     });
 
   sessionsCommand

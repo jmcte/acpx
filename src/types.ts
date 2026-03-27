@@ -140,6 +140,12 @@ export interface OutputFormatter {
   flush(): void;
 }
 
+export type SessionMeta = {
+  model?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+};
+
 export type AcpClientOptions = {
   agentCommand: string;
   cwd: string;
@@ -147,6 +153,7 @@ export type AcpClientOptions = {
   nonInteractivePermissions?: NonInteractivePermissionPolicy;
   authCredentials?: Record<string, string>;
   authPolicy?: AuthPolicy;
+  sessionMeta?: SessionMeta;
   suppressSdkConsoleErrors?: boolean;
   verbose?: boolean;
   onAcpMessage?: (direction: AcpMessageDirection, message: AcpJsonRpcMessage) => void;

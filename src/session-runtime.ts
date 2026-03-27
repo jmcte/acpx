@@ -83,6 +83,7 @@ import {
   type SessionEnsureResult,
   type SessionRecord,
   type SessionSetConfigOptionResult,
+  type SessionMeta,
   type SessionSetModeResult,
   type SessionSendOutcome,
   type SessionSendResult,
@@ -104,6 +105,7 @@ export type RunOnceOptions = {
   nonInteractivePermissions?: NonInteractivePermissionPolicy;
   authCredentials?: Record<string, string>;
   authPolicy?: AuthPolicy;
+  sessionMeta?: SessionMeta;
   outputFormatter: OutputFormatter;
   suppressSdkConsoleErrors?: boolean;
   verbose?: boolean;
@@ -117,6 +119,7 @@ export type SessionCreateOptions = {
   nonInteractivePermissions?: NonInteractivePermissionPolicy;
   authCredentials?: Record<string, string>;
   authPolicy?: AuthPolicy;
+  sessionMeta?: SessionMeta;
   verbose?: boolean;
 } & TimedRunOptions;
 
@@ -127,6 +130,7 @@ export type SessionSendOptions = {
   nonInteractivePermissions?: NonInteractivePermissionPolicy;
   authCredentials?: Record<string, string>;
   authPolicy?: AuthPolicy;
+  sessionMeta?: SessionMeta;
   outputFormatter: OutputFormatter;
   errorEmissionPolicy?: OutputErrorEmissionPolicy;
   suppressSdkConsoleErrors?: boolean;
@@ -143,6 +147,7 @@ export type SessionEnsureOptions = {
   nonInteractivePermissions?: NonInteractivePermissionPolicy;
   authCredentials?: Record<string, string>;
   authPolicy?: AuthPolicy;
+  sessionMeta?: SessionMeta;
   verbose?: boolean;
   walkBoundary?: string;
 } & TimedRunOptions;
@@ -195,6 +200,7 @@ type RunSessionPromptOptions = {
   nonInteractivePermissions?: NonInteractivePermissionPolicy;
   authCredentials?: Record<string, string>;
   authPolicy?: AuthPolicy;
+  sessionMeta?: SessionMeta;
   outputFormatter: OutputFormatter;
   timeoutMs?: number;
   suppressSdkConsoleErrors?: boolean;
@@ -395,6 +401,7 @@ async function runSessionPrompt(
     nonInteractivePermissions: options.nonInteractivePermissions,
     authCredentials: options.authCredentials,
     authPolicy: options.authPolicy,
+    sessionMeta: options.sessionMeta,
     suppressSdkConsoleErrors: options.suppressSdkConsoleErrors,
     verbose: options.verbose,
     onAcpMessage: (_direction, message) => {
@@ -588,6 +595,7 @@ export async function runOnce(options: RunOnceOptions): Promise<RunPromptResult>
     nonInteractivePermissions: options.nonInteractivePermissions,
     authCredentials: options.authCredentials,
     authPolicy: options.authPolicy,
+    sessionMeta: options.sessionMeta,
     suppressSdkConsoleErrors: options.suppressSdkConsoleErrors,
     verbose: options.verbose,
     onAcpMessage: (_direction, message) => output.onAcpMessage(message),
@@ -634,6 +642,7 @@ export async function createSession(
     nonInteractivePermissions: options.nonInteractivePermissions,
     authCredentials: options.authCredentials,
     authPolicy: options.authPolicy,
+    sessionMeta: options.sessionMeta,
     verbose: options.verbose,
   });
 
@@ -713,6 +722,7 @@ export async function ensureSession(
     nonInteractivePermissions: options.nonInteractivePermissions,
     authCredentials: options.authCredentials,
     authPolicy: options.authPolicy,
+    sessionMeta: options.sessionMeta,
     timeoutMs: options.timeoutMs,
     verbose: options.verbose,
   });
