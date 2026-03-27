@@ -536,13 +536,37 @@ export class AcpClient {
 
   async createSession(cwd = this.options.cwd): Promise<SessionCreateResult> {
     const connection = this.getConnection();
+    const meta = this.buildSessionMeta();
     const result = await connection.newSession({
       cwd: asAbsoluteCwd(cwd),
       mcpServers: [],
+      ...(meta ? { _meta: meta } : {}),
     });
     return {
       sessionId: result.sessionId,
       agentSessionId: extractRuntimeSessionId(result._meta),
+    };
+  }
+
+  private buildSessionMeta(): Record<string, unknown> | undefined {
+    const sm = this.options.sessionMeta;
+    if (!sm?.model && !sm?.allowedTools && !sm?.maxTurns) {
+      return undefined;
+    }
+
+    const options: Record<string, unknown> = {};
+    if (sm.model) {
+      options.model = sm.model;
+    }
+    if (sm.allowedTools) {
+      options.allowedTools = sm.allowedTools;
+    }
+    if (sm.maxTurns) {
+      options.maxTurns = sm.maxTurns;
+    }
+
+    return {
+      claudeCode: { options },
     };
   }
 
